@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YM Exit Poll</title>
+    <style>
+        /* --- Moderne UI Instellingen --- */
+        body {
+            background-color: #F7F9FC;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .achtergrond-logo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('YMtransparant.png'); 
+            background-size: 100% 100%;
+            background-position: center;
+            opacity: 0.15; 
+            z-index: -1; 
+        }
+
+        /* --- De Hoofdkaart --- */
+        .card {
+            background-color: rgba(255, 255, 255, 0.6); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px); 
+            padding: 60px; 
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.8); 
+            text-align: center;
+            width: 90%;
+            max-width: 1000px; 
+            z-index: 10;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 { color: #2D3748; font-size: 50px; margin-bottom: 10px; margin-top: 0; }
+        p.vraag { color: #718096; font-size: 28px; font-weight: 500; margin-bottom: 60px; }
+
+        /* --- De Smiley Knoppen --- */
+        .smiley-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px; /* Ruimte tussen de smileys */
+        }
+
+        .stem-btn {
+            background: transparent;
+            border: none;
+            font-size: 100px; /* Gigantische smileys */
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s;
+            padding: 20px;
+            border-radius: 50%;
+            outline: none;
+            /* Zorgt voor een subtiele gloed als je eroverheen gaat */
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+        }
+
+        .stem-btn:hover { 
+            transform: scale(1.2) translateY(-10px); 
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.2));
+        }
+        
+        .stem-btn:active { 
+            transform: scale(0.9); 
+        }
+
+        /* --- Bedankt Overlay Animatie --- */
+        .bedankt-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 30px;
+        }
+
+        .bedankt-overlay h2 {
+            font-size: 60px;
+            color: #4ECDC4;
+            margin: 0 0 15px 0;
+        }
+        
+        .bedankt-overlay p {
+            font-size: 28px;
+            color: #2D3748;
+            margin: 0;
+        }
+
+        /* --- Geheime Beheerder functionaliteit --- */
+        .geheime-knop {
+            position: absolute; top: 0; right: 0; width: 150px; height: 150px;
+            z-index: 999; cursor: default; 
+        }
+
+        .admin-menu {
+            display: none; position: absolute; top: 20px; left: 20px; 
+            background-color: white; padding: 20px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 2px solid #E2E8F0; z-index: 1000;
+        }
+        
+        .admin-btn {
+            background-color: #F7F9FC; color: #2D3748; border: 1px solid #CBD5E0;
+            padding: 10px 15px; border-radius: 6px; cursor: pointer;
+            font-size: 14px; font-weight: bold; margin-bottom: 10px; display: block; width: 100%;
+        }
+
+        .admin-btn.rood { color: white; background-color: #FF6B6B; border-color: #FF6B6B; }
+        
+        .uitslag-tekst {
+            font-family: monospace; font-size: 16px; color: #4A5568; 
+            background: #EDF2F7; padding: 10px; border-radius: 6px; margin-bottom: 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="geheime-knop" onclick="checkGeheimeKlik()"></div>
+    <div class="achtergrond-logo"></div>
+
+    <div class="card">
+        <div class="bedankt-overlay" id="bedankt-overlay">
+            <h2>✓ Bedankt en wel thuis!</h2>
+            <p>Je feedback is opgeslagen.</p>
+        </div>
+
+        <h1>Deel jouw mening!</h1>
+        <p class="vraag">Wat vond je van de avond? Tik op jouw smiley!</p>
+
+        <div class="smiley-container">
+            <button class="stem-btn" onclick="stem(0)" title="Fantastisch">🤩</button>
+            <button class="stem-btn" onclick="stem(1)" title="Leerzaam">😊</button>
+            <button class="stem-btn" onclick="stem(2)" title="Prima">😐</button>
+            <button class="stem-btn" onclick="stem(3)" title="Kon beter">😕</button>
+        </div>
+    </div>
+
+    <div class="admin-menu" id="admin-menu">
+        <strong style="display: block; margin-bottom: 15px; color: #2D3748; font-size: 18px;">Beheerderspaneel</strong>
+        
+        <div class="uitslag-tekst" id="live-uitslag">
+            Uitslag wordt hier getoond...
+        </div>
+
+        <button class="admin-btn" onclick="slaOpAlsTXT()">📥 Download Uitslag (.txt)</button>
+        <button class="admin-btn rood" onclick="resetStemmen()">🗑️ Reset Stemmen</button>
+        <button class="admin-btn" onclick="sluitAdmin()">❌ Sluit Paneel</button>
+    </div>
+
+    <script>
+        let stemmen = JSON.parse(localStorage.getItem('exitStemmenKiosk')) || [0, 0, 0, 0];
+
+        // --- Geheime Beheerder Logica ---
+        let klikTeller = 0;
+        let klikTimer;
+
+        function checkGeheimeKlik() {
+            klikTeller++;
+            clearTimeout(klikTimer);
+            
+            klikTimer = setTimeout(() => { klikTeller = 0; }, 2000);
+
+            if (klikTeller >= 5) {
+                klikTeller = 0; 
+                let pin = prompt("Geef de 4-cijferige pincode om beheer te openen:");
+                if (pin === "0000") {
+                    updateLiveUitslag();
+                    document.getElementById('admin-menu').style.display = 'block';
+                } else if (pin !== null) {
+                    alert("Foutieve pincode.");
+                }
+            }
+        }
+
+        function sluitAdmin() {
+            document.getElementById('admin-menu').style.display = 'none';
+        }
+
+        function updateLiveUitslag() {
+            const uitslagDiv = document.getElementById('live-uitslag');
+            uitslagDiv.innerHTML = `
+                🤩 Fantastisch: ${stemmen[0]}<br>
+                😊 Leerzaam: ${stemmen[1]}<br>
+                😐 Prima: ${stemmen[2]}<br>
+                😕 Kon beter: ${stemmen[3]}
+            `;
+        }
+
+        // --- Stem logica & Animatie ---
+        function stem(index) {
+            stemmen[index]++;
+            localStorage.setItem('exitStemmenKiosk', JSON.stringify(stemmen));
+            
+            // Als het admin menu open staat, update de nummers live
+            updateLiveUitslag(); 
+            
+            toonBedanktAnimatie();
+        }
+
+        function toonBedanktAnimatie() {
+            const overlay = document.getElementById('bedankt-overlay');
+            overlay.style.opacity = '1'; 
+            
+            // Verberg de popup weer na 1.2 seconde
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+            }, 1500);
+        }
+
+        // --- Opslaan ---
+        function slaOpAlsTXT() {
+            const tekst = `EINDSTAND YM EXIT POLL\n--------------------------\n🤩 Fantastisch: ${stemmen[0]}\n😊 Leerzaam: ${stemmen[1]}\n😐 Prima: ${stemmen[2]}\n😕 Kon beter: ${stemmen[3]}\n`;
+            
+            const blob = new Blob([tekst], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'YM_Exit_Uitslag.txt';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        function resetStemmen() {
+            if(confirm("Weet je ZEKER dat je alle stemmen wilt wissen?")) {
+                stemmen = [0, 0, 0, 0];
+                localStorage.setItem('exitStemmenKiosk', JSON.stringify(stemmen));
+                updateLiveUitslag();
+            }
+        }
+    </script>
+</body>
+</html>
